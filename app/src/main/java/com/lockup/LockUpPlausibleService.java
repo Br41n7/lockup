@@ -57,13 +57,11 @@ public class LockUpPlausibleService extends AccessibilityService {
         }
     }
 
-    Integer pointsHave = 0;
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         if (preferences.getBoolean("accessibility", false) && preferences.getBoolean("plausible", false)) {
             String deniabilityPw = preferences.getString("deniabilityPw", "LockUp");
-            Integer pointsNeeded = deniabilityPw.length() - 1;
             PowerManager powerManager = (PowerManager) this.getSystemService(Context.POWER_SERVICE);
             boolean isAwake = (Build.VERSION.SDK_INT < 20 ? powerManager.isScreenOn() : powerManager.isInteractive());
             if (isAwake) {
@@ -73,24 +71,20 @@ public class LockUpPlausibleService extends AccessibilityService {
                 if (keyMgr.inKeyguardRestrictedInputMode()) {
                     switch (event.getEventType()) {
                         case AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED:
-                            char[] txtCharArray = event.getText().toString().toCharArray();
-                            char[] deniabilityPwCharArray = deniabilityPw.toCharArray();
-                            for (int i = 0; i < deniabilityPwCharArray.length; i++) {
-                                try {
-                                  if (Integer.valueOf(deniabilityPwCharArray[i]).equals(Integer.valueOf(txtCharArray[i + 1]))) {
-                                        pointsHave++;
-                                        if (pointsHave >= pointsNeeded) {
-                                            Defense defense = new Defense(getApplicationContext());
-                                            defense.protect_device_run();
-                                        }
-                                    }
-                                } catch (Exception e) {
+                            if (event.getText() != null && !event.getText().isEmpty()) {
+                                String enteredText = event.getText().get(0).toString();
+                                enteredText = enteredText.trim();
+                                if (enteredText.startsWith("[") && enteredText.endsWith("]")) {
+                                    enteredText = enteredText.substring(1, enteredText.length() - 1);
+                                }
+                                enteredText = enteredText.trim();
+                                if (enteredText.equals(deniabilityPw) || (deniabilityPw.length() > 1 && enteredText.equals(deniabilityPw.substring(0, deniabilityPw.length() - 1)))) {
+                                    Defense defense = new Defense(getApplicationContext());
+                                    defense.protect_device_run();
                                 }
                             }
+                            break;
                     }
-                } else {
-                    // phone unlocked
-                    pointsHave = 0;
                 }
             }
         }

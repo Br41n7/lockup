@@ -25,7 +25,27 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="@string/pref_defenseMech">
+
+        <ListPreference
+            android:defaultValue="Factory Reset"
+            android:id="@+id/desiredResponse"
+            android:key="desiredResponse"
+            android:title="@string/desiredResponse_title"
+            android:summary="@string/desiredResponse_default"
+            android:entries="@array/response_options"
+            android:entryValues="@array/response_options" />
+
+    </PreferenceCategory>
+
     <PreferenceCategory android:title="@string/pref_appConfig">
+
+        <SwitchPreference
+            android:defaultValue="true"
+            android:id="@+id/notifyUser"
+            android:key="notifyUser"
+            android:title="@string/notifyUser_title"
+            android:summary="@string/notifyUser_summary" />
 
         <Preference
             android:key="version"

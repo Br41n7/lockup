@@ -52,7 +52,7 @@ public class SettingsActivity extends PreferenceActivity {
                 prefEditor.putBoolean("accessibility", false);
                 prefEditor.putBoolean("runAtBoot", true);
                 prefEditor.putBoolean("compromised", false);
-                prefEditor.putBoolean("initialized", false);
+                prefEditor.putBoolean("initialized", true);
                 prefEditor.putBoolean("notifyUser", true);
                 prefEditor.apply();
             }
