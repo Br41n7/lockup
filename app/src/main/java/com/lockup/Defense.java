@@ -5,10 +5,9 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
-public class Defense extends AppCompatActivity {
+public class Defense {
 
     Context context;
 
@@ -32,12 +31,15 @@ public class Defense extends AppCompatActivity {
              switch (response) {
                 case "Lock":
                     devicePolicyManager.lockNow();
+                    break;
                 case "Factory Reset":
                     devicePolicyManager.wipeData(0);
                     devicePolicyManager.lockNow();
+                    break;
                 default:
                      devicePolicyManager.wipeData(0);
                      devicePolicyManager.lockNow();
+                     break;
             }
         } else {
             Log.d("LockUp", "Unable to properly defend this device. Failing open.");
