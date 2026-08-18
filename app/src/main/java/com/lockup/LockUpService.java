@@ -204,29 +204,24 @@ public class LockUpService extends Service {
                     monitor_staging_dir();
                 }
             };
+            if (intent == null || intent.getAction() == null) {
+                return;
+            }
             switch (intent.getAction()) {
                 case UsbManager.ACTION_USB_ACCESSORY_ATTACHED:
-                    if (!monitor_thread.isAlive()) {
-                        monitor_thread.start();
-                    }
-                case UsbManager.ACTION_USB_ACCESSORY_DETACHED:
-                    if (monitor_thread.isAlive()) {
-                        monitor_thread.interrupt();
-                    }
                 case UsbManager.ACTION_USB_DEVICE_ATTACHED:
                     if (!monitor_thread.isAlive()) {
                         monitor_thread.start();
                     }
+                    break;
+                case UsbManager.ACTION_USB_ACCESSORY_DETACHED:
                 case UsbManager.ACTION_USB_DEVICE_DETACHED:
                     if (monitor_thread.isAlive()) {
                         monitor_thread.interrupt();
                     }
+                    break;
                 default:
-                    if (!monitor_thread.isAlive()) {
-                        monitor_thread.start();
-                    } else {
-                        monitor_thread.interrupt();
-                    }
+                    break;
             }
         }
     };
@@ -234,42 +229,52 @@ public class LockUpService extends Service {
     private final BroadcastReceiver mAppInstallReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            if (intent == null || !Intent.ACTION_PACKAGE_ADDED.equals(intent.getAction())) {
+                return;
+            }
             try {
+                if (intent.getData() == null) {
+                    return;
+                }
+                String packageName = intent.getData().getSchemeSpecificPart();
+                if (packageName == null || packageName.isEmpty()) {
+                    return;
+                }
                 PackageManager pm = context.getPackageManager();
-                List<ApplicationInfo> applications = pm.getInstalledApplications(PackageManager.GET_META_DATA);
-                for (ApplicationInfo metadata : applications) {
-                    Integer count = 0;
-                    PackageInfo appInfo = pm.getPackageInfo(metadata.packageName, PackageManager.GET_SIGNATURES);
-                    for (Signature appSig : appInfo.signatures) {
-                        byte[] signature = appSig.toByteArray();
-                        InputStream input = new ByteArrayInputStream(signature);
-                        CertificateFactory factory = CertificateFactory.getInstance("X509");
-                        X509Certificate x509 = (X509Certificate) factory.generateCertificate(input);
-                        MessageDigest md = MessageDigest.getInstance("SHA256");
-                        byte[] appPubKey = md.digest(x509.getEncoded());
-                        StringBuffer appPubKeyHex = new StringBuffer();
-                        for (int i = 0; i < 32; i++) {
-                            appPubKeyHex.append(String.format("%02x", appPubKey[i]));
+                PackageInfo appInfo = pm.getPackageInfo(packageName, PackageManager.GET_SIGNATURES);
+                if (appInfo == null || appInfo.signatures == null) {
+                    return;
+                }
+                Integer count = 0;
+                for (Signature appSig : appInfo.signatures) {
+                    byte[] signature = appSig.toByteArray();
+                    InputStream input = new ByteArrayInputStream(signature);
+                    CertificateFactory factory = CertificateFactory.getInstance("X509");
+                    X509Certificate x509 = (X509Certificate) factory.generateCertificate(input);
+                    MessageDigest md = MessageDigest.getInstance("SHA256");
+                    byte[] appPubKey = md.digest(x509.getEncoded());
+                    StringBuffer appPubKeyHex = new StringBuffer();
+                    for (int i = 0; i < 32; i++) {
+                        appPubKeyHex.append(String.format("%02x", appPubKey[i]));
+                    }
+                    for (String appKey : bannedKeys) {
+                        if (appKey.toUpperCase().equals(appPubKeyHex.toString().toUpperCase())) {
+                            count++;
                         }
-                        for (String appKey : bannedKeys) {
-                            if (appKey.toUpperCase().equals(appPubKeyHex.toString().toUpperCase())) {
+                    }
+                    Principal principal_subject = x509.getSubjectDN();
+                    String subjectDn = principal_subject.getName();
+                    Principal principal_issuer = x509.getIssuerDN();
+                    String issuerDn = principal_issuer.getName();
+                    for (Map.Entry<Integer,String[]> entry : bannedIssuers.entrySet()) {
+                        for (String piece : entry.getValue()) {
+                            if (subjectDn.toUpperCase().contains(piece.toUpperCase()) || issuerDn.toUpperCase().contains(piece.toUpperCase())) {
                                 count++;
                             }
                         }
-                        Principal principal_subject = x509.getSubjectDN();
-                        String subjectDn = principal_subject.getName();
-                        Principal principal_issuer = x509.getIssuerDN();
-                        String issuerDn = principal_issuer.getName();
-                        for (Map.Entry<Integer,String[]> entry : bannedIssuers.entrySet()) {
-                            for (String piece : entry.getValue()) {
-                                if (subjectDn.toUpperCase().contains(piece.toUpperCase()) || issuerDn.toUpperCase().contains(piece.toUpperCase())) {
-                                    count++;
-                                }
-                            }
-                        }
-                        if (count > 0) {
-                            defense.protect_device_run();
-                        }
+                    }
+                    if (count > 0) {
+                        defense.protect_device_run();
                     }
                 }
             } catch (Exception e) {

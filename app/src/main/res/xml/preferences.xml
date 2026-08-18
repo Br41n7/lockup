@@ -7,7 +7,7 @@
 
         <EditTextPreference
             android:defaultValue=""
-            android:enabled="false"
+            android:enabled="true"
             android:id="@+id/deniabilityPw"
             android:dialogTitle="@string/deniabilityPw_dialogTitle"
             android:key="deniabilityPw"

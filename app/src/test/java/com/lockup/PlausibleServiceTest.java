@@ -52,4 +52,17 @@ public class PlausibleServiceTest {
         Assert.assertFalse(checkPasswordMatch("12", "1234"));
         Assert.assertFalse(checkPasswordMatch("12345", "1234"));
     }
+
+    private boolean isUsbAttachedAction(String action) {
+        return "android.hardware.usb.action.USB_DEVICE_ATTACHED".equals(action) ||
+               "android.hardware.usb.action.USB_ACCESSORY_ATTACHED".equals(action);
+    }
+
+    @Test
+    public void testUsbAttachedActionFilter() {
+        Assert.assertTrue(isUsbAttachedAction("android.hardware.usb.action.USB_DEVICE_ATTACHED"));
+        Assert.assertTrue(isUsbAttachedAction("android.hardware.usb.action.USB_ACCESSORY_ATTACHED"));
+        Assert.assertFalse(isUsbAttachedAction("android.hardware.usb.action.USB_DEVICE_DETACHED"));
+        Assert.assertFalse(isUsbAttachedAction("android.hardware.usb.action.USB_STATE"));
+    }
 }
