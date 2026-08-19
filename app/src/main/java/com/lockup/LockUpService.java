@@ -195,29 +195,32 @@ public class LockUpService extends Service {
         }
     };
 
+    private Thread monitorThread = null;
+
     private final BroadcastReceiver mUsbAttachReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Thread monitor_thread = new Thread() {
-                @Override
-                public void run() {
-                    monitor_staging_dir();
-                }
-            };
             if (intent == null || intent.getAction() == null) {
                 return;
             }
             switch (intent.getAction()) {
                 case UsbManager.ACTION_USB_ACCESSORY_ATTACHED:
                 case UsbManager.ACTION_USB_DEVICE_ATTACHED:
-                    if (!monitor_thread.isAlive()) {
-                        monitor_thread.start();
+                    if (monitorThread == null || !monitorThread.isAlive()) {
+                        monitorThread = new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                monitor_staging_dir();
+                            }
+                        });
+                        monitorThread.start();
                     }
                     break;
                 case UsbManager.ACTION_USB_ACCESSORY_DETACHED:
                 case UsbManager.ACTION_USB_DEVICE_DETACHED:
-                    if (monitor_thread.isAlive()) {
-                        monitor_thread.interrupt();
+                    if (monitorThread != null && monitorThread.isAlive()) {
+                        monitorThread.interrupt();
+                        monitorThread = null;
                     }
                     break;
                 default:
